@@ -79,7 +79,11 @@ function sanitizePromptField(value: unknown): string {
   s = s.replace(/---+/g, '- - -');
   s = s.replace(/\n#/g, '\n＃');
   s = s.replace(/`{3,}/g, '``');
-  return s.slice(0, 2000);
+  if (s.length > 2000) {
+    console.warn(`[prompt] sanitizePromptField: value truncated from ${s.length} to 2000 chars`);
+    return s.slice(0, 2000);
+  }
+  return s;
 }
 
 export const BASE_SYSTEM_PROMPT = OFFICIAL_DESIGNER_PROMPT;

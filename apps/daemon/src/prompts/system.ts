@@ -73,7 +73,7 @@ type ProjectMetadata = {
 };
 type ProjectTemplate = { name: string; description?: string | null; files: Array<{ name: string; content: string }> };
 
-function sanitizePromptField(value: unknown): string {
+export function sanitizePromptField(value: unknown): string {
   let s = String(value ?? '');
   s = s.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
   s = s.replace(/---+/g, '- - -');

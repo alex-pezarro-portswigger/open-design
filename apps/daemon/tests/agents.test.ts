@@ -1210,17 +1210,18 @@ test('spawnEnvForAgent strips ANTHROPIC_API_KEY case-insensitively for the claud
   assert.equal(env.PATH, '/usr/bin');
 });
 
-test('spawnEnvForAgent preserves ANTHROPIC_API_KEY for non-claude adapters', () => {
+test('spawnEnvForAgent strips ANTHROPIC_API_KEY from non-claude adapters', () => {
   for (const agentId of ['codex', 'gemini', 'opencode', 'devin']) {
     const env = spawnEnvForAgent(agentId, {
-      ANTHROPIC_API_KEY: 'sk-keep',
+      ANTHROPIC_API_KEY: 'sk-secret',
       PATH: '/usr/bin',
     });
     assert.equal(
-      env.ANTHROPIC_API_KEY,
-      'sk-keep',
-      `expected ${agentId} to preserve ANTHROPIC_API_KEY`,
+      'ANTHROPIC_API_KEY' in env,
+      false,
+      `expected ${agentId} to strip ANTHROPIC_API_KEY`,
     );
+    assert.equal(env.PATH, '/usr/bin');
   }
 });
 

@@ -1199,6 +1199,8 @@ const SENSITIVE_ENV_PATTERNS = [
   /^VERCEL_TOKEN$/i,
   /^OD_[A-Z_]*_API_KEY$/i,
   /^OD_[A-Z_]*_TOKEN$/i,
+  // Catch-all for any env var ending in common secret suffixes.
+  /_(TOKEN|SECRET|KEY|PASSWORD|PASS|PWD)$/i,
 ];
 
 export function spawnEnvForAgent(agentId, baseEnv) {

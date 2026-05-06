@@ -731,7 +731,8 @@ function requireLocalDaemonRequest(req, res, next) {
 }
 
 function requireSessionToken(req, res, next) {
-  const token = req.headers['x-od-session-token'];
+  // Accept token from header (XHR/fetch) or query param (EventSource, raw browser URLs).
+  const token = req.headers['x-od-session-token'] ?? req.query._token;
   if (typeof token !== 'string' || token !== DAEMON_SESSION_TOKEN) {
     res.status(401).json({ error: 'invalid session token' });
     return;
@@ -1127,7 +1128,9 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
   const _SESSION_TOKEN_EXEMPT_RE =
     /^\/health$|^\/version$|^\/daemon-token$|^\/live-artifacts\/[^/]+\/preview$/;
   app.use('/api', (req, res, next) => {
-    if (_SESSION_TOKEN_EXEMPT_RE.test(req.path)) return next();
+    // Normalise double-leading slashes so //health still matches ^/health$.
+    const normalizedPath = req.path.replace(/^\/+/, '/');
+    if (_SESSION_TOKEN_EXEMPT_RE.test(normalizedPath)) return next();
     requireSessionToken(req, res, next);
   });
 

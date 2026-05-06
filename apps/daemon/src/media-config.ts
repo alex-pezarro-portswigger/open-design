@@ -112,8 +112,8 @@ async function readStored(projectRoot) {
   try {
     const raw = await readFile(configFile(projectRoot), 'utf8');
     const parsed = JSON.parse(raw);
-    // Silently tighten permissions on existing files — no-op on filesystems
-    // that don't support chmod.
+    // Tighten permissions on existing files. chmod is a no-op on Windows and
+    // on network mounts without Unix extension support — permissions are best-effort.
     try { fs.chmodSync(configFile(projectRoot), 0o600); } catch {}
     if (parsed && typeof parsed === 'object' && parsed.providers) {
       return parsed.providers;

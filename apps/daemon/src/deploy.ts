@@ -572,7 +572,12 @@ export function normalizeDeployHookScriptUrl(raw) {
   try {
     const url = new URL(trimmed);
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return '';
-    if (!DEPLOY_HOOK_ALLOWED_HOSTS.has(url.hostname)) return '';
+    if (!DEPLOY_HOOK_ALLOWED_HOSTS.has(url.hostname)) {
+      console.warn(
+        `[deploy] OD_DEPLOY_HOOK_SCRIPT_URL is set but hostname "${url.hostname}" is not in DEPLOY_HOOK_ALLOWED_HOSTS — hook script will not be injected.`,
+      );
+      return '';
+    }
     return url.toString();
   } catch {
     return '';

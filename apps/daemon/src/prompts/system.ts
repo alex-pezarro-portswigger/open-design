@@ -79,7 +79,7 @@ function sanitizePromptField(value: unknown): string {
   s = s.replace(/---+/g, '- - -');
   s = s.replace(/\n#/g, '\n＃');
   s = s.replace(/`{3,}/g, '``');
-  return s.slice(0, 500);
+  return s.slice(0, 2000);
 }
 
 export const BASE_SYSTEM_PROMPT = OFFICIAL_DESIGNER_PROMPT;

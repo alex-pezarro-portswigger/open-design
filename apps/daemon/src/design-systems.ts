@@ -7,7 +7,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-const SAFE_ID_RE = /^[a-z0-9][a-z0-9._-]*$/;
+const SAFE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 
 export async function listDesignSystems(root) {
   const out = [];

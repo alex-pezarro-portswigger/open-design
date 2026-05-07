@@ -4,6 +4,7 @@ import {
   fetchCodexPets,
 } from '../../providers/registry';
 import { prepareCodexAtlas } from './codexAtlas';
+import { apiFetch } from '../../utils/api';
 
 // Built-in pet catalog. Historically this listed a handful of emoji-only
 // pets (Mochi, Pixel, Foxy…), but those felt boring next to the rich
@@ -306,7 +307,7 @@ export async function migrateCustomPetAtlas(
   if (!match) return null;
 
   try {
-    const resp = await fetch(codexPetSpritesheetUrl(match));
+    const resp = await apiFetch(codexPetSpritesheetUrl(match));
     if (!resp.ok) return null;
     const blob = await resp.blob();
     const dataUrl = await blobToDataUrl(blob);

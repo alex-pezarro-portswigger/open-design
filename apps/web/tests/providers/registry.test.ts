@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   fetchAppVersionInfo,
@@ -6,6 +6,18 @@ import {
   fetchProjectFileText,
   uploadProjectFiles,
 } from '../../src/providers/registry';
+import { __setDaemonAuthBootstrappedForTests__ } from '../../src/utils/api';
+
+// Skip the daemon-token bootstrap fetch in tests — the fetch mocks below
+// only know about the specific URLs each test exercises, and a leading
+// /api/daemon-token call would otherwise throw "unexpected fetch".
+beforeEach(() => {
+  __setDaemonAuthBootstrappedForTests__('test-token');
+});
+
+afterEach(() => {
+  __setDaemonAuthBootstrappedForTests__(null);
+});
 
 describe('fetchAppVersionInfo', () => {
   afterEach(() => {
@@ -59,7 +71,7 @@ describe('fetchProjectFileText', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/projects/project-1/raw/diagram.svg?cacheBust=1710000000-2',
-      { cache: 'no-store' },
+      expect.objectContaining({ cache: 'no-store' }),
     );
   });
 
@@ -122,7 +134,10 @@ describe('fetchConnectorDiscovery', () => {
     ]);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith('/api/connectors/discovery?refresh=true');
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/connectors/discovery?refresh=true',
+      expect.any(Object),
+    );
   });
 });
 

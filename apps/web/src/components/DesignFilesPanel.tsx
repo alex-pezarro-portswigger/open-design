@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useT } from '../i18n';
 import type { Dict } from '../i18n/types';
 import { projectFileUrl } from '../providers/registry';
+import { apiFetch } from '../utils/api';
 import type { LiveArtifactWorkspaceEntry, ProjectFile, ProjectFileKind } from '../types';
 import { Icon } from './Icon';
 import { LiveArtifactBadges } from './LiveArtifactBadges';
@@ -162,7 +163,7 @@ export function DesignFilesPanel({
     const fileList = [...selected];
     if (fileList.length === 0) return;
     try {
-      const resp = await fetch(`/api/projects/${encodeURIComponent(projectId)}/archive/batch`, {
+      const resp = await apiFetch(`/api/projects/${encodeURIComponent(projectId)}/archive/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ files: fileList }),

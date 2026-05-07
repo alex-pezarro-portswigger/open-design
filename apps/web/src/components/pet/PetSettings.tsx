@@ -20,6 +20,7 @@ import {
 } from './pets';
 import { PetSpriteFace } from './PetSpriteFace';
 import { loadPetImageFromFile } from './image';
+import { apiFetch } from '../../utils/api';
 import {
   CODEX_ATLAS_ROWS_DEF,
   CODEX_ATLAS_COLS,
@@ -346,7 +347,7 @@ export function PetSettings({ cfg, setCfg }: Props) {
     setCodexAdopting(pet.id);
     setUploadError(null);
     try {
-      const resp = await fetch(codexPetSpritesheetUrl(pet));
+      const resp = await apiFetch(codexPetSpritesheetUrl(pet));
       if (!resp.ok) throw new Error('Could not download that pet.');
       const blob = await resp.blob();
       const dataUrl = await blobToDataUrl(blob);

@@ -1,12 +1,19 @@
 import type http from 'node:http';
 import { afterEach, beforeAll, afterAll, describe, expect, it, vi } from 'vitest';
 import { startServer } from '../src/server.js';
+import { withDaemonAuth } from './helpers/auth-fetch.js';
 
 type FetchInput = Parameters<typeof fetch>[0];
 type FetchInit = Parameters<typeof fetch>[1];
 
 describe('API proxy routes', () => {
   const realFetch = globalThis.fetch;
+  // Wrap realFetch so test calls into the in-process daemon ride with the
+  // session token. The proxy forwards to upstream stubs via realFetch too,
+  // but those calls don't need the token — they have already cleared
+  // /api gating by the time we hit the upstream mock.
+  const daemonRealFetch = (input: FetchInput, init?: FetchInit) =>
+    realFetch(input, withDaemonAuth(init) as FetchInit);
   let server: http.Server;
   let baseUrl: string;
 
@@ -39,7 +46,7 @@ describe('API proxy routes', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const res = await realFetch(`${baseUrl}/api/proxy/openai/stream`, {
+    const res = await daemonRealFetch(`${baseUrl}/api/proxy/openai/stream`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -95,7 +102,7 @@ describe('API proxy routes', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await realFetch(`${baseUrl}/api/proxy/openai/stream`, {
+    await daemonRealFetch(`${baseUrl}/api/proxy/openai/stream`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -139,7 +146,7 @@ describe('API proxy routes', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await realFetch(`${baseUrl}/api/proxy/anthropic/stream`, {
+    await daemonRealFetch(`${baseUrl}/api/proxy/anthropic/stream`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -161,7 +168,7 @@ describe('API proxy routes', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const res = await realFetch(`${baseUrl}/api/proxy/openai/stream`, {
+    const res = await daemonRealFetch(`${baseUrl}/api/proxy/openai/stream`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -186,7 +193,7 @@ describe('API proxy routes', () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
 
-    const res = await realFetch(`${baseUrl}/api/proxy/openai/stream`, {
+    const res = await daemonRealFetch(`${baseUrl}/api/proxy/openai/stream`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -209,7 +216,7 @@ describe('API proxy routes', () => {
       return Promise.resolve(sseResponse('data: {"error":{"message":"bad model"}}\n\n'));
     }));
 
-    const res = await realFetch(`${baseUrl}/api/proxy/openai/stream`, {
+    const res = await daemonRealFetch(`${baseUrl}/api/proxy/openai/stream`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -231,7 +238,7 @@ describe('API proxy routes', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await realFetch(`${baseUrl}/api/proxy/azure/stream`, {
+    await daemonRealFetch(`${baseUrl}/api/proxy/azure/stream`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -257,7 +264,7 @@ describe('API proxy routes', () => {
       return Promise.resolve(sseResponse('data: {"promptFeedback":{"blockReason":"SAFETY"}}\n\n'));
     }));
 
-    const res = await realFetch(`${baseUrl}/api/proxy/google/stream`, {
+    const res = await daemonRealFetch(`${baseUrl}/api/proxy/google/stream`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -279,7 +286,7 @@ describe('API proxy routes', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    await realFetch(`${baseUrl}/api/proxy/google/stream`, {
+    await daemonRealFetch(`${baseUrl}/api/proxy/google/stream`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({

@@ -13,10 +13,11 @@ import type {
   ProjectMetadata,
   ProjectTemplate,
 } from '../types';
+import { apiFetch } from '../utils/api';
 
 export async function listProjects(): Promise<Project[]> {
   try {
-    const resp = await fetch('/api/projects');
+    const resp = await apiFetch('/api/projects');
     if (!resp.ok) return [];
     const json = (await resp.json()) as { projects: Project[] };
     return json.projects ?? [];
@@ -27,7 +28,7 @@ export async function listProjects(): Promise<Project[]> {
 
 export async function getProject(id: string): Promise<Project | null> {
   try {
-    const resp = await fetch(`/api/projects/${encodeURIComponent(id)}`);
+    const resp = await apiFetch(`/api/projects/${encodeURIComponent(id)}`);
     if (!resp.ok) return null;
     const json = (await resp.json()) as { project: Project };
     return json.project;
@@ -45,7 +46,7 @@ export async function createProject(input: {
 }): Promise<{ project: Project; conversationId: string } | null> {
   try {
     const id = crypto.randomUUID();
-    const resp = await fetch('/api/projects', {
+    const resp = await apiFetch('/api/projects', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, ...input }),
@@ -63,7 +64,7 @@ export async function importClaudeDesignZip(
   try {
     const form = new FormData();
     form.append('file', file);
-    const resp = await fetch('/api/import/claude-design', {
+    const resp = await apiFetch('/api/import/claude-design', {
       method: 'POST',
       body: form,
     });
@@ -82,7 +83,7 @@ export async function importClaudeDesignZip(
 
 export async function listTemplates(): Promise<ProjectTemplate[]> {
   try {
-    const resp = await fetch('/api/templates');
+    const resp = await apiFetch('/api/templates');
     if (!resp.ok) return [];
     const json = (await resp.json()) as { templates: ProjectTemplate[] };
     return json.templates ?? [];
@@ -93,7 +94,7 @@ export async function listTemplates(): Promise<ProjectTemplate[]> {
 
 export async function getTemplate(id: string): Promise<ProjectTemplate | null> {
   try {
-    const resp = await fetch(`/api/templates/${encodeURIComponent(id)}`);
+    const resp = await apiFetch(`/api/templates/${encodeURIComponent(id)}`);
     if (!resp.ok) return null;
     const json = (await resp.json()) as { template: ProjectTemplate };
     return json.template;
@@ -108,7 +109,7 @@ export async function saveTemplate(input: {
   sourceProjectId: string;
 }): Promise<ProjectTemplate | null> {
   try {
-    const resp = await fetch('/api/templates', {
+    const resp = await apiFetch('/api/templates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -123,7 +124,7 @@ export async function saveTemplate(input: {
 
 export async function deleteTemplate(id: string): Promise<boolean> {
   try {
-    const resp = await fetch(`/api/templates/${encodeURIComponent(id)}`, {
+    const resp = await apiFetch(`/api/templates/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
     return resp.ok;
@@ -137,7 +138,7 @@ export async function patchProject(
   patch: Partial<Project>,
 ): Promise<Project | null> {
   try {
-    const resp = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+    const resp = await apiFetch(`/api/projects/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
@@ -152,7 +153,7 @@ export async function patchProject(
 
 export async function deleteProject(id: string): Promise<boolean> {
   try {
-    const resp = await fetch(`/api/projects/${encodeURIComponent(id)}`, {
+    const resp = await apiFetch(`/api/projects/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });
     return resp.ok;
@@ -167,7 +168,7 @@ export async function listConversations(
   projectId: string,
 ): Promise<Conversation[]> {
   try {
-    const resp = await fetch(
+    const resp = await apiFetch(
       `/api/projects/${encodeURIComponent(projectId)}/conversations`,
     );
     if (!resp.ok) return [];
@@ -183,7 +184,7 @@ export async function createConversation(
   title?: string,
 ): Promise<Conversation | null> {
   try {
-    const resp = await fetch(
+    const resp = await apiFetch(
       `/api/projects/${encodeURIComponent(projectId)}/conversations`,
       {
         method: 'POST',
@@ -205,7 +206,7 @@ export async function patchConversation(
   patch: Partial<Conversation>,
 ): Promise<Conversation | null> {
   try {
-    const resp = await fetch(
+    const resp = await apiFetch(
       `/api/projects/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}`,
       {
         method: 'PATCH',
@@ -226,7 +227,7 @@ export async function deleteConversation(
   conversationId: string,
 ): Promise<boolean> {
   try {
-    const resp = await fetch(
+    const resp = await apiFetch(
       `/api/projects/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}`,
       { method: 'DELETE' },
     );
@@ -243,7 +244,7 @@ export async function listMessages(
   conversationId: string,
 ): Promise<ChatMessage[]> {
   try {
-    const resp = await fetch(
+    const resp = await apiFetch(
       `/api/projects/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}/messages`,
     );
     if (!resp.ok) return [];
@@ -260,7 +261,7 @@ export async function saveMessage(
   message: ChatMessage,
 ): Promise<void> {
   try {
-    await fetch(
+    await apiFetch(
       `/api/projects/${encodeURIComponent(projectId)}/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(message.id)}`,
       {
         method: 'PUT',
@@ -277,7 +278,7 @@ export async function saveMessage(
 
 export async function loadTabs(projectId: string): Promise<OpenTabsState> {
   try {
-    const resp = await fetch(
+    const resp = await apiFetch(
       `/api/projects/${encodeURIComponent(projectId)}/tabs`,
     );
     if (!resp.ok) return { tabs: [], active: null };
@@ -292,7 +293,7 @@ export async function saveTabs(
   state: OpenTabsState,
 ): Promise<void> {
   try {
-    await fetch(`/api/projects/${encodeURIComponent(projectId)}/tabs`, {
+    await apiFetch(`/api/projects/${encodeURIComponent(projectId)}/tabs`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(state),

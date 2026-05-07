@@ -8,6 +8,7 @@ import { ComposioConnectorProvider, composioConnectorProvider, getStaticComposio
 import { readComposioConfig, writeComposioConfig } from '../src/connectors/composio-config.js';
 import { deleteConnectorCredentialsByProvider } from '../src/connectors/service.js';
 import { CHAT_TOOL_ENDPOINTS, CHAT_TOOL_OPERATIONS, toolTokenRegistry } from '../src/tool-tokens.js';
+import { withDaemonAuth, withDaemonAuthHeaders } from './helpers/auth-fetch.js';
 
 let server;
 let baseUrl;
@@ -130,7 +131,7 @@ afterEach(async () => {
 });
 
 async function jsonFetch(url, init) {
-  const response = await fetch(url, init);
+  const response = await fetch(url, withDaemonAuth(init));
   return { status: response.status, body: await response.json() };
 }
 
@@ -144,10 +145,10 @@ async function requestWithHostHeader(method, url, host, body) {
         port: target.port,
         path: target.pathname + target.search,
         method,
-        headers: {
+        headers: withDaemonAuthHeaders({
           host,
           ...(body === undefined ? {} : { 'content-type': 'application/json' }),
-        },
+        }),
       },
       (res) => {
         const chunks = [];

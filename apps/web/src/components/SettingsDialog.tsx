@@ -29,6 +29,7 @@ import {
   requestNotificationPermission,
   showCompletionNotification,
 } from '../utils/notifications';
+import { apiFetch } from '../utils/api';
 
 export type SettingsSection =
   | 'execution'
@@ -1526,7 +1527,7 @@ function IntegrationsSection() {
   // snippet that would silently fail when pasted.
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/mcp/install-info')
+    apiFetch('/api/mcp/install-info')
       .then(async (res) => {
         if (!res.ok) throw new Error(`daemon ${res.status}`);
         return (await res.json()) as McpInstallInfo;

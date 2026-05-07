@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { startServer } from '../src/server.js';
+import { withDaemonAuth } from './helpers/auth-fetch.js';
 
 describe('/api/chat', () => {
   let server: http.Server;
@@ -47,14 +48,14 @@ describe('/api/chat', () => {
     tempDirs.push(emptyAgentHome);
     process.env.OD_AGENT_HOME = emptyAgentHome;
 
-    const response = await fetch(`${baseUrl}/api/chat`, {
+    const response = await fetch(`${baseUrl}/api/chat`, withDaemonAuth({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         agentId: 'claude',
         message: 'hello',
       }),
-    });
+    }));
     const body = await response.text();
 
     expect(response.ok).toBe(true);

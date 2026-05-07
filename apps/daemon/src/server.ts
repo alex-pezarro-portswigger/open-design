@@ -730,9 +730,31 @@ function requireLocalDaemonRequest(req, res, next) {
   next();
 }
 
+// Read the `od_session` cookie value out of a raw `Cookie:` request header.
+// We don't use cookie-parser to avoid pulling in a dep; this is a single
+// well-known cookie name and a strict match is enough.
+function readSessionCookie(rawCookieHeader) {
+  if (typeof rawCookieHeader !== 'string' || rawCookieHeader.length === 0) return null;
+  for (const part of rawCookieHeader.split(';')) {
+    const trimmed = part.trim();
+    if (!trimmed.startsWith('od_session=')) continue;
+    const value = trimmed.slice('od_session='.length);
+    return value || null;
+  }
+  return null;
+}
+
 function requireSessionToken(req, res, next) {
-  // Accept token from header (XHR/fetch) or query param (EventSource, raw browser URLs).
-  const token = req.headers['x-od-session-token'] ?? req.query._token;
+  // Accept the token from any of:
+  //   - X-OD-Session-Token header (fetch/XHR)
+  //   - _token query param (EventSource, raw browser URLs)
+  //   - od_session cookie (iframe sub-asset fetches inside `<iframe src=...>`,
+  //     `<base href>` resolution, `<img src>`, etc., which the browser issues
+  //     without going through application JS)
+  const token =
+    req.headers['x-od-session-token'] ??
+    req.query._token ??
+    readSessionCookie(req.headers.cookie);
   if (typeof token !== 'string' || token !== DAEMON_SESSION_TOKEN) {
     res.status(401).json({ error: 'invalid session token' });
     return;
@@ -1125,8 +1147,16 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
   // Enforce the session token on all /api routes except the small set of
   // unauthenticated bootstrap / health-check endpoints that the frontend
   // needs to call before it has obtained the token.
+  //
+  // The OAuth callback endpoint is also exempt: connector OAuth providers
+  // redirect a user back to /api/connectors/oauth/callback/:connectorId
+  // from a third-party origin and have no way to attach the session token.
+  // That endpoint authenticates via the `state` query param (a one-shot
+  // value that the daemon issues at /connect time and validates here),
+  // which is independent of and stronger than the session token for that
+  // specific flow.
   const _SESSION_TOKEN_EXEMPT_RE =
-    /^\/health$|^\/version$|^\/daemon-token$|^\/live-artifacts\/[^/]+\/preview$/;
+    /^\/health$|^\/version$|^\/daemon-token$|^\/live-artifacts\/[^/]+\/preview$|^\/connectors\/oauth\/callback\/[^/]+$/;
   app.use('/api', (req, res, next) => {
     // Normalise double-leading slashes so //health still matches ^/health$.
     const normalizedPath = req.path.replace(/^\/+/, '/');
@@ -1180,7 +1210,18 @@ export async function startServer({ port = 7456, host = process.env.OD_BIND_HOST
   // session token on first load. Still localhost-restricted via
   // requireLocalDaemonRequest (IP check), but does not require the token
   // itself (the frontend doesn't have it yet at this point).
+  //
+  // Sets `od_session` as an HttpOnly, SameSite=Strict cookie scoped to /api
+  // so the browser carries the token automatically on iframe sub-asset
+  // fetches (e.g. relative `<img src>` resolved against a `<base href>`)
+  // that JS can't intercept to attach a header. SameSite=Strict prevents
+  // the cookie from being sent on cross-site requests, which is the only
+  // CSRF lever a malicious page would have on a localhost daemon.
   app.get('/api/daemon-token', requireLocalDaemonRequest, (req, res) => {
+    res.setHeader(
+      'Set-Cookie',
+      `od_session=${DAEMON_SESSION_TOKEN}; Path=/api; HttpOnly; SameSite=Strict`,
+    );
     res.json({ token: DAEMON_SESSION_TOKEN });
   });
 

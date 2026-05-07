@@ -1,11 +1,20 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { reattachDaemonRun, streamViaDaemon } from '../../src/providers/daemon';
 import { streamMessageOpenAI } from '../../src/providers/openai-compatible';
 import { parseSseFrame } from '../../src/providers/sse';
+import { __setDaemonAuthBootstrappedForTests__ } from '../../src/utils/api';
+
+// Pre-seed the daemon-token bootstrap cache. apiFetch otherwise tries to
+// hit /api/daemon-token before any other call, which the per-test fetch
+// mocks below don't expect and would treat as an unexpected URL.
+beforeEach(() => {
+  __setDaemonAuthBootstrappedForTests__('test-token');
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  __setDaemonAuthBootstrappedForTests__(null);
 });
 
 describe('parseSseFrame', () => {
@@ -144,7 +153,7 @@ describe('streamViaDaemon', () => {
       handlers,
     });
 
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/runs/run-1/cancel', { method: 'POST' });
+    expect(fetchMock.mock.calls.find((c) => c[0] === '/api/runs/run-1/cancel')).toBeUndefined();
     expect(handlers.onDone).not.toHaveBeenCalled();
     expect(handlers.onError).not.toHaveBeenCalled();
   });
@@ -180,11 +189,11 @@ describe('streamViaDaemon', () => {
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/runs', expect.objectContaining({
       method: 'POST',
     }));
-    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/runs/run-1/events', {
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/runs/run-1/events', expect.objectContaining({
       method: 'GET',
       signal: streamController.signal,
-    });
-    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/runs/run-1/cancel', { method: 'POST' });
+    }));
+    expect(fetchMock).toHaveBeenNthCalledWith(3, '/api/runs/run-1/cancel', expect.objectContaining({ method: 'POST' }));
     expect(handlers.onDone).not.toHaveBeenCalled();
     expect(handlers.onError).not.toHaveBeenCalled();
   });
@@ -247,7 +256,7 @@ describe('streamViaDaemon', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/runs', expect.objectContaining({ method: 'POST' }));
-    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/runs/run-1/cancel', { method: 'POST' });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/runs/run-1/cancel', expect.objectContaining({ method: 'POST' }));
     expect(handlers.onDone).not.toHaveBeenCalled();
     expect(handlers.onError).not.toHaveBeenCalled();
   });
@@ -306,10 +315,10 @@ describe('streamViaDaemon', () => {
       handlers,
     });
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/events?after=1', {
+    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/events?after=1', expect.objectContaining({
       method: 'GET',
       signal: expect.any(AbortSignal),
-    });
+    }));
     expect(handlers.onDone).toHaveBeenCalledWith('hello');
   });
 
@@ -365,10 +374,10 @@ describe('streamViaDaemon', () => {
       handlers,
     });
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/events?after=7', {
+    expect(fetchMock).toHaveBeenCalledWith('/api/runs/run-1/events?after=7', expect.objectContaining({
       method: 'GET',
       signal: expect.any(AbortSignal),
-    });
+    }));
     expect(handlers.onDelta).toHaveBeenCalledWith('lo');
     expect(handlers.onDone).toHaveBeenCalledWith('lo');
   });
@@ -416,7 +425,7 @@ describe('streamViaDaemon', () => {
       handlers,
     });
 
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/runs/run-1/cancel', { method: 'POST' });
+    expect(fetchMock.mock.calls.find((c) => c[0] === '/api/runs/run-1/cancel')).toBeUndefined();
     expect(handlers.onError).toHaveBeenCalledWith(new Error('daemon stream disconnected before run completed'));
     expect(handlers.onDone).not.toHaveBeenCalled();
   });

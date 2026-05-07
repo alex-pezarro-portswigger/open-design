@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { startServer } from '../src/server.js';
 import { connectorService, ConnectorServiceError } from '../src/connectors/service.js';
 import { CHAT_TOOL_ENDPOINTS, CHAT_TOOL_OPERATIONS, toolTokenRegistry } from '../src/tool-tokens.js';
+import { withDaemonAuth, withDaemonAuthHeaders } from './helpers/auth-fetch.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(here, '../../..');
@@ -63,21 +64,21 @@ function validCreateInput(title = 'Tool Route Live Artifact') {
 }
 
 async function jsonFetch(url, init) {
-  const response = await fetch(url, init);
+  const response = await fetch(url, withDaemonAuth(init));
   return { status: response.status, body: await response.json() };
 }
 
 async function textFetch(url, init) {
-  const response = await fetch(url, init);
+  const response = await fetch(url, withDaemonAuth(init));
   return { status: response.status, headers: response.headers, body: await response.text() };
 }
 
 async function createProject(projectId) {
-  const response = await fetch(`${baseUrl}/api/projects`, {
+  const response = await fetch(`${baseUrl}/api/projects`, withDaemonAuth({
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id: projectId, name: projectId }),
-  });
+  }));
   return { status: response.status, body: await response.json() };
 }
 
@@ -90,7 +91,7 @@ async function rawHttpJsonFetch(url, { headers = {}, method = 'GET' } = {}) {
         port: parsed.port,
         path: `${parsed.pathname}${parsed.search}`,
         method,
-        headers,
+        headers: withDaemonAuthHeaders(headers),
       },
       (res) => {
         let body = '';
@@ -130,9 +131,9 @@ async function writeProjectJson(projectId, name, value) {
 }
 
 async function openProjectEvents(projectId) {
-  const response = await fetch(`${baseUrl}/api/projects/${encodeURIComponent(projectId)}/events`, {
+  const response = await fetch(`${baseUrl}/api/projects/${encodeURIComponent(projectId)}/events`, withDaemonAuth({
     headers: { Accept: 'text/event-stream' },
-  });
+  }));
   if (!response.ok || !response.body) {
     throw new Error(`failed to open project events stream: ${response.status}`);
   }

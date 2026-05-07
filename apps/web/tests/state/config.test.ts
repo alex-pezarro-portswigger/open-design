@@ -1,9 +1,10 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_CONFIG,
   loadConfig,
   syncComposioConfigToDaemon,
 } from '../../src/state/config';
+import { __setDaemonAuthBootstrappedForTests__ } from '../../src/utils/api';
 import type { AppConfig } from '../../src/types';
 
 const store = new Map<string, string>();
@@ -23,9 +24,17 @@ vi.stubGlobal('localStorage', {
 });
 
 describe('syncComposioConfigToDaemon', () => {
+  beforeEach(() => {
+    // Pretend the daemon-token bootstrap already happened so apiFetch
+    // doesn't fire an extra leading /api/daemon-token call before the
+    // assertions look at the mock.
+    __setDaemonAuthBootstrappedForTests__('test-token');
+  });
+
   afterEach(() => {
     vi.restoreAllMocks();
     vi.stubGlobal('fetch', originalFetch);
+    __setDaemonAuthBootstrappedForTests__(null);
   });
 
   it('sends a pending Composio API key to the daemon', async () => {
@@ -34,11 +43,13 @@ describe('syncComposioConfigToDaemon', () => {
 
     await syncComposioConfigToDaemon({ apiKey: 'cmp_secret', apiKeyConfigured: false });
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/connectors/composio/config', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ apiKey: 'cmp_secret' }),
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/connectors/composio/config',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({ apiKey: 'cmp_secret' }),
+      }),
+    );
   });
 
   it('does not clear a daemon-saved key when local state only has the saved marker', async () => {
@@ -47,11 +58,13 @@ describe('syncComposioConfigToDaemon', () => {
 
     await syncComposioConfigToDaemon({ apiKey: '', apiKeyConfigured: true, apiKeyTail: 'test' });
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/connectors/composio/config', {
-      method: 'PUT',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({}),
-    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/connectors/composio/config',
+      expect.objectContaining({
+        method: 'PUT',
+        body: JSON.stringify({}),
+      }),
+    );
   });
 });
 

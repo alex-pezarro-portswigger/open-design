@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { LiveArtifactRefreshSsePayload, LiveArtifactSsePayload } from '@open-design/contracts';
+import { apiUrl } from '../utils/api';
 export interface ProjectFileChangeEvent {
   type: 'file-changed';
   path: string;
@@ -26,7 +27,10 @@ const DEFAULT_INITIAL_BACKOFF = 1000;
 const DEFAULT_MAX_BACKOFF = 30_000;
 
 export function projectEventsUrl(projectId: string): string {
-  return `/api/projects/${encodeURIComponent(projectId)}/events`;
+  // EventSource can't set custom headers; rely on the daemon-session cookie
+  // (Path=/api) for primary auth and append the token as a `_token` query
+  // param too as a belt-and-suspenders fallback if the cookie didn't land.
+  return apiUrl(`/api/projects/${encodeURIComponent(projectId)}/events`);
 }
 
 export interface ProjectEventsConnection {

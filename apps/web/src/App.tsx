@@ -16,6 +16,7 @@ import {
   fetchPromptTemplates,
   fetchSkills,
 } from './providers/registry';
+import { apiFetch, ensureDaemonAuth } from './utils/api';
 import { navigate, useRoute } from './router';
 import {
   fetchDaemonConfig,
@@ -108,7 +109,7 @@ export function App() {
     const body = activeProjectId
       ? { projectId: activeProjectId, fileName: activeFileName }
       : { active: false };
-    fetch('/api/active', {
+    apiFetch('/api/active', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
@@ -121,6 +122,13 @@ export function App() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Bootstrap the daemon session token (cookie + cached value) before
+      // any other /api call goes out so the rest of the bootstrap fan-out
+      // doesn't 401. ensureDaemonAuth resolves with null on a network or
+      // daemon-down failure; that just falls through to daemonIsLive(),
+      // which will mark us offline.
+      await ensureDaemonAuth();
+      if (cancelled) return;
       const alive = await daemonIsLive();
       if (cancelled) return;
       setDaemonLive(alive);

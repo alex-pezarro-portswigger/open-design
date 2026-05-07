@@ -44,7 +44,7 @@ describe('deploy file set', () => {
     expect(files.map((f) => f.file)).toEqual(['index.html']);
   });
 
-  it('injects a closeable deploy hook script from cdn when configured', async () => {
+  it('ignores caller-supplied hookScriptUrl override (security: only env-controlled hosts on the allowlist may inject)', async () => {
     const { projectsRoot, projectId, dir } = await setupProject();
     await writeFile(path.join(dir, 'page.html'), '<!doctype html><body><h1>Hello</h1></body>');
 
@@ -53,9 +53,11 @@ describe('deploy file set', () => {
     });
     const html = files.find((f) => f.file === 'index.html')?.data.toString('utf8') ?? '';
 
-    expect(html).toContain(
-      '<script src="https://cdn.example.com/open-design-hook.js" defer data-open-design-deploy-hook="true" data-closeable="true"></script></body>',
-    );
+    // The hookScriptUrl option was removed by the security commit; only
+    // OD_DEPLOY_HOOK_SCRIPT_URL with a hostname on DEPLOY_HOOK_ALLOWED_HOSTS
+    // can inject a script. The caller-supplied URL must not appear.
+    expect(html).not.toContain('cdn.example.com');
+    expect(html).not.toContain('data-open-design-deploy-hook');
   });
 
   it('includes referenced html and css assets', async () => {
@@ -244,11 +246,13 @@ describe('deploy file set', () => {
     ).toContain('src="sub/asset.png"');
   });
 
-  it('ignores invalid deploy hook script urls', () => {
+  it('rejects invalid and non-allowlisted deploy hook script urls', () => {
+    // javascript: scheme is rejected outright.
     expect(injectDeployHookScript('<body></body>', 'javascript:alert(1)')).toBe('<body></body>');
-    expect(normalizeDeployHookScriptUrl('https://cdn.example.com/hook.js')).toBe(
-      'https://cdn.example.com/hook.js',
-    );
+    // The security commit added an empty DEPLOY_HOOK_ALLOWED_HOSTS allowlist,
+    // so even a syntactically valid https:// URL is rejected unless its
+    // hostname has been explicitly added to the set.
+    expect(normalizeDeployHookScriptUrl('https://cdn.example.com/hook.js')).toBe('');
   });
 
   it('extracts url() and @import refs from inline <style> blocks', () => {

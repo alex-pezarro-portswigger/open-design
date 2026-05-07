@@ -35,6 +35,7 @@ import { buildReactComponentSrcdoc } from '../runtime/react-component';
 import { buildSrcdoc } from '../runtime/srcdoc';
 import { parseForceInline, shouldUrlLoadHtmlPreview } from './file-viewer-render-mode';
 import { saveTemplate } from '../state/projects';
+import { apiFetch } from '../utils/api';
 import type {
   LiveArtifactEventItem,
   DeployConfigResponse,
@@ -3317,7 +3318,7 @@ async function fetchProjectRelativeText(
   const filePath = resolveProjectRelativePath(ownerFileName, assetRef);
   if (!filePath) return null;
   try {
-    const resp = await fetch(projectRawUrl(projectId, filePath));
+    const resp = await apiFetch(projectRawUrl(projectId, filePath));
     if (!resp.ok) return null;
     return await resp.text();
   } catch {
